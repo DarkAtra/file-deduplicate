@@ -33,6 +33,7 @@ class FileDeduplicateUI {
 	private val duplicateFiles = DefaultTableModel().apply {
 		addColumn("File")
 		addColumn("Checksum")
+		addColumn("Size")
 	}
 
 	init {
@@ -75,7 +76,8 @@ class FileDeduplicateUI {
 				launch(Dispatchers.Main) {
 					duplicateFiles.addRow(arrayOf(
 						file.absolutePath,
-						file.checksum
+						file.checksum,
+						file.humanReadableSize
 					))
 				}
 			}

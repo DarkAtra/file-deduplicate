@@ -10,8 +10,16 @@ import kotlin.io.path.absolutePathString
 data class FileModel(
 	val path: Path,
 	val absolutePath: String = path.absolutePathString(),
-	var checksum: String? = null
+	var checksum: String? = null,
+	val size: Long
 ) {
+
+	val humanReadableSize = when {
+		size >= 1 shl 30 -> "${size / (1 shl 30)} GB"
+		size >= 1 shl 20 -> "${size / (1 shl 20)} MB"
+		size >= 1 shl 10 -> "${size / (1 shl 10)} KB"
+		else -> "$size bytes"
+	}
 
 	fun sha256(): String {
 

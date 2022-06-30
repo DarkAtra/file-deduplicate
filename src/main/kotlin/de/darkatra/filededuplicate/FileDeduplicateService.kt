@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.buffer
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -19,6 +20,7 @@ import org.kodein.db.orm.kotlinx.KotlinxSerializer
 import java.io.File
 import java.nio.file.Path
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.io.path.isReadable
 
 class FileDeduplicateService {
 
@@ -51,14 +53,20 @@ class FileDeduplicateService {
 				}
 				entity != null
 			}
+			.filter { file -> file.path.isReadable() }
 			.onEach { file ->
 				checksumCalculationScope.launch {
-					file.checksum = file.sha256()
-					database.put(FileModelEntity(
-						absolutePath = file.absolutePath,
-						checksum = file.checksum!!
-					))
-					checksumsCalculatedChannel.emit(file)
+					runCatching {
+						file.checksum = file.sha256()
+					}.onSuccess {
+						database.put(FileModelEntity(
+							absolutePath = file.absolutePath,
+							checksum = file.checksum!!
+						))
+						checksumsCalculatedChannel.emit(file)
+					}.onFailure {
+						println(it)
+					}
 				}
 			}
 			.launchIn(duplicateScanScope)
@@ -92,7 +100,8 @@ class FileDeduplicateService {
 		fileScanScope.launch {
 			path.toFile().walk()
 				.filter(File::isFile)
-				.map { file -> FileModel(path = file.toPath()) }
+				.filter(File::canRead)
+				.map { file -> FileModel(path = file.toPath(), size = file.length()) }
 				.forEach { file ->
 					files.add(file)
 					filesChannel.emit(file)

@@ -7,5 +7,5 @@ import org.kodein.db.model.Id
 data class FileModelEntity(
 	@Id
 	val absolutePath: String,
-	val checksum: String,
+	val checksum: String
 )
